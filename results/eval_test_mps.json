@@ -1,0 +1,219 @@
+{
+ "device": "mps",
+ "split": "test",
+ "chips": 90,
+ "real_cloud_frac_mean": 0.2,
+ "real_cloudy_chips": 37,
+ "results": {
+  "synth_0.0": {
+   "clean": {
+    "water_iou": 0.8168,
+    "acc": 0.9754,
+    "pixels": 20517367,
+    "sec_per_chip": 0.2099,
+    "kept_tokens": 1.0,
+    "agree_clean": 1.0
+   },
+   "zero_fill": {
+    "water_iou": 0.8168,
+    "acc": 0.9754,
+    "pixels": 20517367,
+    "sec_per_chip": 0.21,
+    "kept_tokens": 1.0,
+    "agree_clean": 1.0
+   },
+   "drop_mean": {
+    "water_iou": 0.8168,
+    "acc": 0.9754,
+    "pixels": 20517367,
+    "sec_per_chip": 0.2327,
+    "kept_tokens": 1.0,
+    "agree_clean": 1.0
+   },
+   "drop_zero": {
+    "water_iou": 0.8168,
+    "acc": 0.9754,
+    "pixels": 20517367,
+    "sec_per_chip": 0.2302,
+    "kept_tokens": 1.0,
+    "agree_clean": 1.0
+   },
+   "drop_near": {
+    "water_iou": 0.8168,
+    "acc": 0.9754,
+    "pixels": 20517367,
+    "sec_per_chip": 0.2428,
+    "kept_tokens": 1.0,
+    "agree_clean": 1.0
+   }
+  },
+  "synth_0.25": {
+   "clean": {
+    "water_iou": 0.8161,
+    "acc": 0.9756,
+    "pixels": 15379236,
+    "sec_per_chip": 0.2101,
+    "kept_tokens": 1.0,
+    "agree_clean": 1.0
+   },
+   "zero_fill": {
+    "water_iou": 0.8233,
+    "acc": 0.9763,
+    "pixels": 15379236,
+    "sec_per_chip": 0.21,
+    "kept_tokens": 1.0,
+    "agree_clean": 0.993
+   },
+   "drop_mean": {
+    "water_iou": 0.8059,
+    "acc": 0.9742,
+    "pixels": 15379236,
+    "sec_per_chip": 0.1835,
+    "kept_tokens": 0.752,
+    "agree_clean": 0.9956
+   },
+   "drop_zero": {
+    "water_iou": 0.7921,
+    "acc": 0.9727,
+    "pixels": 15379236,
+    "sec_per_chip": 0.181,
+    "kept_tokens": 0.752,
+    "agree_clean": 0.9939
+   },
+   "drop_near": {
+    "water_iou": 0.8059,
+    "acc": 0.9741,
+    "pixels": 15379236,
+    "sec_per_chip": 0.194,
+    "kept_tokens": 0.752,
+    "agree_clean": 0.9958
+   }
+  },
+  "synth_0.5": {
+   "clean": {
+    "water_iou": 0.8153,
+    "acc": 0.9755,
+    "pixels": 10246022,
+    "sec_per_chip": 0.2098,
+    "kept_tokens": 1.0,
+    "agree_clean": 1.0
+   },
+   "zero_fill": {
+    "water_iou": 0.8232,
+    "acc": 0.9761,
+    "pixels": 10246022,
+    "sec_per_chip": 0.2098,
+    "kept_tokens": 1.0,
+    "agree_clean": 0.9879
+   },
+   "drop_mean": {
+    "water_iou": 0.7959,
+    "acc": 0.9728,
+    "pixels": 10246022,
+    "sec_per_chip": 0.1367,
+    "kept_tokens": 0.501,
+    "agree_clean": 0.9915
+   },
+   "drop_zero": {
+    "water_iou": 0.7674,
+    "acc": 0.9698,
+    "pixels": 10246022,
+    "sec_per_chip": 0.1351,
+    "kept_tokens": 0.501,
+    "agree_clean": 0.988
+   },
+   "drop_near": {
+    "water_iou": 0.7977,
+    "acc": 0.973,
+    "pixels": 10246022,
+    "sec_per_chip": 0.1476,
+    "kept_tokens": 0.501,
+    "agree_clean": 0.9928
+   }
+  },
+  "synth_0.75": {
+   "clean": {
+    "water_iou": 0.8198,
+    "acc": 0.9758,
+    "pixels": 5126940,
+    "sec_per_chip": 0.2092,
+    "kept_tokens": 1.0,
+    "agree_clean": 1.0
+   },
+   "zero_fill": {
+    "water_iou": 0.8093,
+    "acc": 0.9734,
+    "pixels": 5126940,
+    "sec_per_chip": 0.2095,
+    "kept_tokens": 1.0,
+    "agree_clean": 0.9823
+   },
+   "drop_mean": {
+    "water_iou": 0.7807,
+    "acc": 0.9701,
+    "pixels": 5126940,
+    "sec_per_chip": 0.0938,
+    "kept_tokens": 0.248,
+    "agree_clean": 0.9855
+   },
+   "drop_zero": {
+    "water_iou": 0.7266,
+    "acc": 0.9644,
+    "pixels": 5126940,
+    "sec_per_chip": 0.0925,
+    "kept_tokens": 0.248,
+    "agree_clean": 0.9799
+   },
+   "drop_near": {
+    "water_iou": 0.7854,
+    "acc": 0.9706,
+    "pixels": 5126940,
+    "sec_per_chip": 0.1052,
+    "kept_tokens": 0.248,
+    "agree_clean": 0.9881
+   }
+  },
+  "real_None": {
+   "clean": {
+    "water_iou": 0.8452,
+    "acc": 0.9778,
+    "pixels": 18061459,
+    "sec_per_chip": 0.2088,
+    "kept_tokens": 1.0,
+    "agree_clean": 1.0
+   },
+   "zero_fill": {
+    "water_iou": 0.8503,
+    "acc": 0.9783,
+    "pixels": 18061459,
+    "sec_per_chip": 0.2094,
+    "kept_tokens": 1.0,
+    "agree_clean": 0.9954
+   },
+   "drop_mean": {
+    "water_iou": 0.8414,
+    "acc": 0.9772,
+    "pixels": 18061459,
+    "sec_per_chip": 0.1942,
+    "kept_tokens": 0.801,
+    "agree_clean": 0.9975
+   },
+   "drop_zero": {
+    "water_iou": 0.835,
+    "acc": 0.9763,
+    "pixels": 18061459,
+    "sec_per_chip": 0.1911,
+    "kept_tokens": 0.801,
+    "agree_clean": 0.9972
+   },
+   "drop_near": {
+    "water_iou": 0.8387,
+    "acc": 0.9768,
+    "pixels": 18061459,
+    "sec_per_chip": 0.2042,
+    "kept_tokens": 0.801,
+    "agree_clean": 0.9976
+   }
+  }
+ }
+}
