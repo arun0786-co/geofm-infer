@@ -27,8 +27,17 @@ Prithvi-EO-2.0-300M flood model (m4 pro):
 - two ideas that did not help: copying the nearest kept patch (same as the mean), and using
   the encoder's tokens for a blank tile as the fill (clearly worse).
 
-on a whole sentinel-2 scene (kerala floods, 25 aug 2018, two thirds outside the swath):
-see `docs/results.md`, section 2. (being measured)
+on a whole sentinel-2 scene (kerala floods, 25 aug 2018, 10980 x 10980 px, two thirds
+outside the swath, m4 pro):
+
+| run | seconds | agree with dense on clear pixels |
+|---|---|---|
+| terratorch tiled_inference | 140.2 | 0.927 |
+| skip tiles with no clear patch | **50.9** | **1.000** |
+| skip + drop cloudy patches | **42.3** | 0.944 |
+
+skipping empty tiles is 2.75x faster than terratorch and gives the same answer. dropping
+patches on top saves another 17% but changes about 6% of the clear pixels.
 
 ## how it works
 
