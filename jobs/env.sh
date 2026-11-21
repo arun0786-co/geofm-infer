@@ -20,7 +20,10 @@ PY=$SCR/env/bin/python
 if [ ! -x $PY ]; then
     $SCR/tools/bin/uv venv -q --python 3.12 $SCR/env || exit 1
 fi
-$SCR/tools/bin/uv pip install -q --python $PY torch --torch-backend=cu126 || exit 1
-$SCR/tools/bin/uv pip install -q --python $PY terratorch rasterio s2cloudless pytest || exit 1
+# one install so torch and torchvision both come as cuda 12.6 builds. two
+# separate installs let terratorch pull a torchvision that doesn't match.
+$SCR/tools/bin/uv pip install -q --python $PY --torch-backend=cu126 \
+    torch torchvision terratorch rasterio s2cloudless pytest || exit 1
+$PY -c "import torch, torchvision; print('torch', torch.__version__, 'vision', torchvision.__version__)"
 echo "node $(hostname), scratch $SCR"
 nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader
