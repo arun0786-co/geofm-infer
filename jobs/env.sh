@@ -16,9 +16,9 @@ export UV_CACHE_DIR=$SCR/cache/uv UV_PYTHON_INSTALL_DIR=$SCR/python HF_HOME=$SCR
 if [ ! -x $SCR/tools/bin/uv ]; then
     python3 -m venv $SCR/tools && $SCR/tools/bin/pip install -q uv || exit 1
 fi
-PY=$SCR/env/bin/python
+PY=$SCR/env_cu126/bin/python
 if [ ! -x $PY ]; then
-    $SCR/tools/bin/uv venv -q --python 3.12 $SCR/env || exit 1
+    $SCR/tools/bin/uv venv -q --python 3.12 $SCR/env_cu126 || exit 1
 fi
 # one install so torch and torchvision both come as cuda 12.6 builds. two
 # separate installs let terratorch pull a torchvision that doesn't match.
