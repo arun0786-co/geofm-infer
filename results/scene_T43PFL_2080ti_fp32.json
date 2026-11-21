@@ -1,0 +1,51 @@
+{
+ "scene": "T43PFL_20180825",
+ "device": "cuda",
+ "shape": [
+  10980,
+  10980
+ ],
+ "cloud_frac": 0.7438,
+ "plan": {
+  "tile": 512,
+  "overlap": 64,
+  "patch": 16,
+  "min_clear": 0.5,
+  "batch": 8
+ },
+ "fp16": false,
+ "dense": {
+  "sec": 66.46,
+  "tiles": 625,
+  "tiles_run": 625,
+  "tokens_total": 640000,
+  "tokens_run": 640000,
+  "water_frac_clear": 0.26222
+ },
+ "skip": {
+  "sec": 22.68,
+  "tiles": 625,
+  "tiles_run": 194,
+  "tokens_total": 640000,
+  "tokens_run": 198656,
+  "agree_dense_clear": 1.0,
+  "coverage_clear": 1.0,
+  "water_frac_clear": 0.26222
+ },
+ "drop": {
+  "sec": 20.31,
+  "tiles": 625,
+  "tiles_run": 194,
+  "tokens_total": 640000,
+  "tokens_run": 159623,
+  "agree_dense_clear": 0.94386,
+  "coverage_clear": 1.0,
+  "water_frac_clear": 0.23567
+ },
+ "terratorch": {
+  "sec": 64.05,
+  "agree_dense_clear": 0.92687,
+  "coverage_clear": 1.0,
+  "water_frac_clear": 0.26152
+ }
+}

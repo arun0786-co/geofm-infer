@@ -114,3 +114,25 @@ what this says:
 - batch 1 on purpose: on mps, batches of tiles that keep different numbers of patches need
   padding and an attention mask, and that was slower than one tile at a time (crop test:
   drop 2.15 s at batch 1, 2.68 s at batch 8). batch size barely changed dense times.
+
+## 3. the same scene on an rtx 2080 ti (cuda), 2026-11-21
+
+`sbatch jobs/scene_cuda.sh` (ada cluster, iiit hyderabad). batch 8, everything else as in
+section 2. results: `results/scene_T43PFL_2080ti_fp32.json`, `..._fp16.json`.
+
+| run | fp32 s | fp16 s | agree with dense (clear px, fp32) |
+|---|---|---|---|
+| terratorch tiled_inference | 64.1 | not run | 0.9269 |
+| dense (our tiler) | 66.5 | 20.8 | 1 |
+| skip | **22.7** | **7.8** | **1.0000** |
+| drop | 20.3 | 7.6 | 0.9439 |
+
+- same picture as on the mac: skipping empty tiles is 2.8x faster than terratorch (fp32 vs
+  fp32) with the same answer.
+- fp16 makes everything about 3x faster again on this card (tensor cores). i did not run
+  terratorch in fp16, so "7.8 s vs 64.1 s" would not be a fair comparison and i don't claim it.
+- dropping patches on top of skipping saves only 10% (fp32) and 2% (fp16) here, less than on
+  the mac. tiles in a batch of 8 are padded to the longest one and need an attention mask,
+  which eats most of the saving. better packing (no padding) is the obvious next thing.
+- the water share and agreement numbers are the same as on the mac to 3 or 4 digits, so the
+  mps and cuda runs compute the same thing.
