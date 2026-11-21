@@ -13,7 +13,7 @@ import numpy as np
 import rasterio
 from s2cloudless import S2PixelCloudDetector
 
-DATA = os.path.expanduser("~/geofm-infer-data/sen1floods11")
+DATA = os.path.expanduser(os.environ.get("GEOFM_DATA", "~/geofm-infer-data/sen1floods11"))
 
 
 def main(split):

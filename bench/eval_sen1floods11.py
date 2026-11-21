@@ -38,7 +38,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from geofm_infer.models import FLOOD_S2_INDEX, load_flood_model, normalize, segment  # noqa: E402
 from geofm_infer.tokens import patch_keep  # noqa: E402
 
-DATA = os.path.expanduser("~/geofm-infer-data/sen1floods11")
+DATA = os.path.expanduser(os.environ.get("GEOFM_DATA", "~/geofm-infer-data/sen1floods11"))
 PATCH = 16
 
 
@@ -130,9 +130,14 @@ def main():
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--modes", default="clean,zero_fill,drop_mean,drop_zero,drop_near")
     ap.add_argument("--out", default="runs/eval.json")
+    ap.add_argument("--decoder", default="", help="neck/decoder/head weights from train_drop.py")
     a = ap.parse_args()
 
     model = load_flood_model(a.device)
+    if a.decoder:
+        ck = torch.load(a.decoder, map_location="cpu")
+        missing, extra = model.load_state_dict(ck["state"], strict=False)
+        assert not extra and all(k.startswith("encoder.") for k in missing), (missing[:3], extra[:3])
     ids = chip_ids(a.split)
     if a.limit:
         ids = ids[:a.limit]
@@ -171,7 +176,7 @@ def main():
                 s["agree"] += int(((p == clean_pred) & v).sum())
         print(f"{i + 1}/{len(ids)} {cid}", flush=True)
 
-    out = {"device": a.device, "split": a.split, "chips": len(ids),
+    out = {"device": a.device, "split": a.split, "chips": len(ids), "decoder": a.decoder,
            "real_cloud_frac_mean": round(float(np.mean(cloudy_frac)), 4),
            "real_cloudy_chips": int(sum(c > 0.05 for c in cloudy_frac)),
            "results": {k: {m: summary(s) for m, s in v.items()} for k, v in res.items()}}
