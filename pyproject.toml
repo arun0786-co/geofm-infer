@@ -1,0 +1,16 @@
+[project]
+name = "geofm-infer"
+version = "0.1.0"
+description = "fast whole scene inference for geospatial foundation models"
+requires-python = ">=3.11"
+dependencies = ["torch>=2.4", "terratorch>=1.2", "rasterio>=1.4", "numpy"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
