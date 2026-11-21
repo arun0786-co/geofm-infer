@@ -44,13 +44,16 @@ def blend_weight(tile, overlap):
     return np.outer(ramp, ramp)
 
 
-def run_scene(model_fn, image, clear, plan=Plan(), classes=2, device="cpu", drop=True):
+def run_scene(model_fn, image, clear, plan=Plan(), classes=2, device="cpu", drop=True, skip=True):
     """image: (c, h, w) float32 already normalized. clear: (h, w) bool.
 
-    model_fn(x, keep) -> logits (b, classes, tile, tile). keep is None for the
-    dense run. returns (pred (h, w) int16 with -1 where nothing was run,
+    model_fn(x, keep) -> logits (b, classes, tile, tile). keep is None when
+    drop is False. skip=True leaves out tiles with no clear patch; with
+    skip=False every tile runs (the plain dense way). returns (pred (h, w) int16 with -1 where nothing was run,
     stats dict).
     """
+    if drop and not skip:
+        raise ValueError("drop needs skip: a tile with nothing kept can't run sparse")
     c, h, w = image.shape
     t = plan.tile
     pad_h, pad_w = max(t - h, 0), max(t - w, 0)
@@ -64,7 +67,7 @@ def run_scene(model_fn, image, clear, plan=Plan(), classes=2, device="cpu", drop
     for y, x in tiles:
         cl = torch.from_numpy(clear[y:y + t, x:x + t])[None]
         k = patch_keep(cl, plan.patch, plan.min_clear)[0]
-        if k.any():
+        if k.any() or not skip:
             keeps[(y, x)] = k
     todo = sorted(keeps, key=lambda yx: int(keeps[yx].sum()))
 
@@ -74,7 +77,11 @@ def run_scene(model_fn, image, clear, plan=Plan(), classes=2, device="cpu", drop
     for i in range(0, len(todo), plan.batch):
         group = todo[i:i + plan.batch]
         xb = torch.from_numpy(np.stack([image[:, y:y + t, x:x + t] for y, x in group])).to(device)
-        kb = torch.stack([keeps[g] for g in group]).to(device) if drop else None
+        kb = None
+        if drop:
+            kb = torch.stack([keeps[g] for g in group]).to(device)
+            if bool(kb.all()):
+                kb = None  # nothing to drop, the dense path is faster
         out = model_fn(xb, kb).float().softmax(1).cpu().numpy()
         for (y, x), o in zip(group, out):
             acc[:, y:y + t, x:x + t] += o * wt

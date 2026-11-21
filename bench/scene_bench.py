@@ -2,7 +2,8 @@
 
   terratorch  terratorch's tiled_inference, the usual way to run these models
   dense       our tiler, every tile, every patch
-  drop        our tiler, cloudy tiles skipped, cloudy patches dropped
+  skip        our tiler, tiles with no clear patch skipped, the rest run whole
+  drop        our tiler, those tiles skipped and cloudy patches dropped
 
 agreement is measured against `dense` on clear pixels.
 
@@ -69,10 +70,10 @@ def main():
     res = {"scene": os.path.basename(d.rstrip("/")), "device": dev, "shape": list(clear.shape),
            "cloud_frac": round(1 - float(clear.mean()), 4), "plan": vars(plan), "fp16": a.fp16}
     preds = {}
-    for name, drop in [("dense", False), ("drop", True)]:
+    for name, drop, skip in [("dense", False, False), ("skip", False, True), ("drop", True, True)]:
         sync(dev)
         t = time.perf_counter()
-        pred, st = run_scene(fn, x, clear, plan, device=dev, drop=drop)
+        pred, st = run_scene(fn, x, clear, plan, device=dev, drop=drop, skip=skip)
         sync(dev)
         res[name] = {"sec": round(time.perf_counter() - t, 2), **st}
         preds[name] = pred
@@ -89,7 +90,7 @@ def main():
                                   crop=a.tile, stride=stride, batch_size=a.batch, device=dev)
         sync(dev)
         res["terratorch"] = {"sec": round(time.perf_counter() - t, 2)}
-        preds["terratorch"] = out[0].argmax(0).numpy().astype(np.int16)
+        preds["terratorch"] = out[0].argmax(0).cpu().numpy().astype(np.int16)
         print("terratorch", res["terratorch"], flush=True)
 
     ok = clear & (preds["dense"] >= 0)
