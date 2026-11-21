@@ -93,3 +93,20 @@ def scatter_back(h, take, valid, n, fill, near=None):
     src = tok * vmask + base * (1 - vmask)
     full.scatter_(1, take[..., None].expand(-1, -1, d), src)
     return torch.cat([cls, full], 1)
+
+
+def fill_dropped(feats, keep, fill="mean"):
+    """take normal dense features and overwrite the dropped places with the fill.
+
+    not a speed up. it is a check: the decoder then sees the same fill as in
+    sparse_features, but the kept tokens had full context in the encoder.
+    """
+    b, n = keep.shape
+    idx, lengths, _ = pack_order(keep, multiple=1)
+    take = idx[:, :n]
+    valid = torch.arange(n, device=keep.device)[None, :] < lengths[:, None]
+    out = []
+    for h in feats:
+        packed = torch.cat([h[:, :1], torch.gather(h[:, 1:], 1, take[..., None].expand(-1, -1, h.shape[-1]))], 1)
+        out.append(scatter_back(packed, take, valid, n, fill))
+    return out

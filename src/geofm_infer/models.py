@@ -11,7 +11,7 @@ import torch.nn.functional as F
 import yaml
 from huggingface_hub import snapshot_download
 
-from .sparse_vit import sparse_features
+from .sparse_vit import fill_dropped, sparse_features
 
 FLOOD_REPO = "ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11"
 
@@ -69,11 +69,16 @@ def normalize(x, mean=FLOOD_MEAN, std=FLOOD_STD):
 
 
 @torch.no_grad()
-def segment(model, x, keep=None, fill="mean"):
-    """logits (b, classes, h, w). keep=None runs the normal dense model."""
+def segment(model, x, keep=None, fill="mean", dense_encoder=False):
+    """logits (b, classes, h, w). keep=None runs the normal dense model.
+
+    dense_encoder=True runs the full encoder and only fills the dropped places
+    before the decoder (a diagnostic, see fill_dropped)."""
     size = x.shape[-2:]
     if keep is None:
         feats = model.encoder(x)
+    elif dense_encoder:
+        feats = fill_dropped(model.encoder(x), keep, fill=fill)
     else:
         feats = sparse_features(model.encoder, x, keep, fill=fill)
     feats = model.neck(feats, image_size=size)

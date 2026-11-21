@@ -4,9 +4,12 @@ for each chip we hide part of the image and compare four ways to run:
 
   clean      the real pixels everywhere (what you'd get with no clouds)
   zero_fill  hidden pixels set to the band mean, then the normal model
-  drop_mean  hidden patches never enter the encoder, filled with the mean token
+  drop_mean  hidden pixels blanked as in zero_fill, and patches that are
+             mostly hidden never enter the encoder, filled with the mean token
   drop_zero  same, filled with zeros
   drop_near  same, filled with a copy of the closest kept patch
+  dec_mean   check only: full encoder on the zero_fill image, then the hidden
+             patches get the mean fill before the decoder
 
 hidden parts come from two sources:
   synth  smooth random blobs covering a set fraction of the chip
@@ -78,9 +81,11 @@ def run(model, x, hidden, mode, dev):
     """returns (pred, seconds)."""
     xt = normalize(torch.from_numpy(x)[None].to(dev))
     keep = None
-    if mode == "zero_fill":
+    if mode != "clean":
+        # hidden pixels are blanked in every mode, also inside patches that are
+        # kept because they are mostly clear. a real cloud hides them too.
         xt = xt.masked_fill(torch.from_numpy(hidden).to(dev)[None, None], 0.0)
-    elif mode.startswith("drop"):
+    if mode.startswith("drop") or mode == "dec_mean":
         clear = torch.from_numpy(~hidden).to(dev)[None]
         keep = patch_keep(clear, PATCH, min_clear=0.5)
     sync(dev)
@@ -89,7 +94,7 @@ def run(model, x, hidden, mode, dev):
         out = None  # nothing visible, nothing to run
     else:
         fill = {"drop_zero": "zero", "drop_near": "nearest"}.get(mode, "mean")
-        out = segment(model, xt, keep=keep, fill=fill)
+        out = segment(model, xt, keep=keep, fill=fill, dense_encoder=(mode == "dec_mean"))
     sync(dev)
     dt = time.perf_counter() - t
     pred = None if out is None else out.argmax(1)[0].cpu().numpy()
@@ -122,6 +127,7 @@ def main():
     ap.add_argument("--split", default="test")
     ap.add_argument("--fracs", default="0,0.25,0.5,0.75")
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--modes", default="clean,zero_fill,drop_mean,drop_zero,drop_near")
     ap.add_argument("--out", default="runs/eval.json")
     a = ap.parse_args()
 
@@ -129,7 +135,7 @@ def main():
     ids = chip_ids(a.split)
     if a.limit:
         ids = ids[:a.limit]
-    modes = ["clean", "zero_fill", "drop_mean", "drop_zero", "drop_near"]
+    modes = a.modes.split(",")
     settings = [("synth", float(f)) for f in a.fracs.split(",")] + [("real", None)]
     res = {f"{src}_{frac}": {m: {"tp": 0, "fp": 0, "fn": 0, "right": 0, "n": 0, "agree": 0, "t": [], "kept": []}
                              for m in modes} for src, frac in settings}
