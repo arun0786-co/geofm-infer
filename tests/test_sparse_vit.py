@@ -64,3 +64,15 @@ def test_batch_padding_matches_single():
         for i in range(3):
             one = sparse_features(vit, x[i:i + 1], keep[i:i + 1])[-1]
             torch.testing.assert_close(batch[i:i + 1], one, atol=1e-5, rtol=1e-5)
+
+
+def test_nearest_fill_copies_neighbour():
+    vit = tiny_vit()
+    x = torch.randn(1, 6, 64, 64)
+    keep = torch.ones(1, 16, dtype=torch.bool)
+    # drop patch 1 and its right and lower neighbours, so patch 0 is the only
+    # kept patch at distance 1
+    keep[0, [1, 2, 5]] = False
+    with torch.no_grad():
+        out = sparse_features(vit, x, keep, fill="nearest")[-1][:, 1:]
+    torch.testing.assert_close(out[0, 1], out[0, 0])

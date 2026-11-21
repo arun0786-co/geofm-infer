@@ -26,7 +26,8 @@ def sparse_features(vit, x, keep, fill="mean"):
 
     keep: (b, n) bool. returns a list with one (b, 1 + n, d) tensor per block,
     the same layout forward_features gives. fill is "mean" (mean of the kept
-    tokens of that tile and layer) or "zero".
+    tokens of that tile and layer), "zero", or "nearest" (copy of the closest
+    kept patch).
     """
     tok, cls_pos = embed(vit, x)
     b, n, d = tok.shape
@@ -38,6 +39,9 @@ def sparse_features(vit, x, keep, fill="mean"):
     valid = torch.arange(m, device=x.device)[None, :] < lengths[:, None]
     attn = torch.cat([torch.ones(b, 1, dtype=torch.bool, device=x.device), valid], 1)
     attn = attn[:, None, None, :]
+    if bool(valid.all()):
+        attn = None  # no padding, so the fast attention path can be used
+    near = nearest_kept(keep, grid_shape(vit, x)) if fill == "nearest" else None
 
     cls = (vit.cls_token + cls_pos).expand(b, -1, -1)
     h = torch.cat([cls, h], 1)
@@ -47,15 +51,36 @@ def sparse_features(vit, x, keep, fill="mean"):
         h = blk(h, attn_mask=attn)
         if i == len(vit.blocks) - 1:
             h = vit.norm(h)
-        outs.append(scatter_back(h, take, valid, n, fill))
+        outs.append(scatter_back(h, take, valid, n, fill, near))
     return outs
 
 
-def scatter_back(h, take, valid, n, fill):
+def grid_shape(vit, x):
+    p = vit.patch_embed.patch_size
+    return x.shape[-2] // p[-2], x.shape[-1] // p[-1]
+
+
+def nearest_kept(keep, grid):
+    """for every patch, the index of the closest kept patch. (b, n)"""
+    gh, gw = grid
+    yy, xx = torch.meshgrid(torch.arange(gh, device=keep.device),
+                            torch.arange(gw, device=keep.device), indexing="ij")
+    pos = torch.stack([yy.flatten(), xx.flatten()], 1).float()
+    dist = torch.cdist(pos, pos)                       # (n, n)
+    dist = dist[None].expand(keep.shape[0], -1, -1).clone()
+    dist.masked_fill_(~keep[:, None, :], float("inf"))
+    return dist.argmin(-1)
+
+
+def scatter_back(h, take, valid, n, fill, near=None):
     """put packed tokens back on the full grid of n patches."""
     b, _, d = h.shape
     cls, tok = h[:, :1], h[:, 1:]
     vmask = valid[..., None].to(tok.dtype)
+    if fill == "nearest":
+        full = scatter_back(h, take, valid, n, "zero")[:, 1:]
+        full = torch.gather(full, 1, near[..., None].expand(-1, -1, d))
+        return torch.cat([cls, full], 1)
     if fill == "mean":
         cnt = vmask.sum(1).clamp(min=1)
         base = (tok * vmask).sum(1, keepdim=True) / cnt[:, None]
