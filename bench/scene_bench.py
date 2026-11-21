@@ -109,7 +109,7 @@ def main():
     if a.out:
         os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
         json.dump(res, open(a.out, "w"), indent=1)
-        np.save(a.out.replace(".json", "_drop.npy"), preds["drop"])
+        np.save(a.out.replace(".json", "_drop.npy").replace("results/", "runs/"), preds["drop"])
 
 
 if __name__ == "__main__":

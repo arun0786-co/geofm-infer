@@ -78,3 +78,39 @@ not blank the hidden pixels inside kept patches, so they saw pixels zero_fill di
 its numbers are not used here.
 
 next: a short fine tune of the decoder with random drops, so it learns the mean fill.
+
+## 2. a whole sentinel-2 scene, m4 pro (mps), 2026-11-21
+
+```
+python bench/scene_prep.py ~/geofm-infer-data/scenes/T43PFL_20180825
+python bench/scene_bench.py ~/geofm-infer-data/scenes/T43PFL_20180825 --device mps --batch 1 \
+    --out results/scene_T43PFL_m4pro_fp32_b1.json
+```
+
+tile 43PFL, 25 aug 2018 (kerala floods), 10980 x 10980 px at 10 m. 66.5% of the tile is
+outside the satellite's swath (nodata), and s2cloudless marks 24% of the rest as cloud, so
+74% is not clear. 512 px tiles with 64 px overlap: 625 tiles. same model as section 1, fp32.
+
+| run | seconds | tiles run | tokens run | agree with dense (clear px) | water share (clear px) |
+|---|---|---|---|---|---|
+| terratorch tiled_inference | 140.2 | 625 | all | 0.9269 | 0.2615 |
+| dense (our tiler, everything) | 142.7 | 625 | 640,000 | 1 | 0.2622 |
+| skip (empty tiles left out) | **50.9** | 194 | 198,656 | **1.0000** | 0.2622 |
+| drop (skip + drop cloudy patches) | **42.3** | 194 | 159,623 | 0.9439 | 0.2357 |
+
+what this says:
+
+- **skipping tiles with no clear patch is the big, free win on this scene: 2.75x faster than
+  terratorch with exactly the same answer on every clear pixel.** most of it is the nodata
+  part of the tile. many sentinel-2 tiles at a swath edge look like this, but a tile in the
+  middle of a swath would gain only from clouds.
+- dropping cloudy patches inside the tiles that do run saves another 17% (50.9 to 42.3 s),
+  but changes 5.6% of the clear pixels and finds less water (23.6% against 26.2%). on the
+  labelled chips (section 1) the same kind of change cost little iou, but here there is no
+  label to say which answer is right.
+- terratorch and our dense tiler disagree on 7.3% of clear pixels although both run every
+  tile with the same model. they differ only in how tiles are cut, padded and blended. so
+  tiling choices alone move this many pixels on this model, which is worth its own look.
+- batch 1 on purpose: on mps, batches of tiles that keep different numbers of patches need
+  padding and an attention mask, and that was slower than one tile at a time (crop test:
+  drop 2.15 s at batch 1, 2.68 s at batch 8). batch size barely changed dense times.

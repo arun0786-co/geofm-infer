@@ -5,3 +5,4 @@ __pycache__/
 runs/
 *.tif
 .DS_Store
+*.npy
