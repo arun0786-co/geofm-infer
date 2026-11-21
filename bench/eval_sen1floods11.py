@@ -8,6 +8,7 @@ for each chip we hide part of the image and compare four ways to run:
              mostly hidden never enter the encoder, filled with the mean token
   drop_zero  same, filled with zeros
   drop_near  same, filled with a copy of the closest kept patch
+  drop_blank same, filled with the encoder's tokens for an all zero tile
   dec_mean   check only: full encoder on the zero_fill image, then the hidden
              patches get the mean fill before the decoder
 
@@ -93,7 +94,7 @@ def run(model, x, hidden, mode, dev):
     if keep is not None and not keep.any():
         out = None  # nothing visible, nothing to run
     else:
-        fill = {"drop_zero": "zero", "drop_near": "nearest"}.get(mode, "mean")
+        fill = {"drop_zero": "zero", "drop_near": "nearest", "drop_blank": "blank"}.get(mode, "mean")
         out = segment(model, xt, keep=keep, fill=fill, dense_encoder=(mode == "dec_mean"))
     sync(dev)
     dt = time.perf_counter() - t

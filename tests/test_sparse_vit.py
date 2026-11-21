@@ -76,3 +76,16 @@ def test_nearest_fill_copies_neighbour():
     with torch.no_grad():
         out = sparse_features(vit, x, keep, fill="nearest")[-1][:, 1:]
     torch.testing.assert_close(out[0, 1], out[0, 0])
+
+
+def test_blank_fill_uses_blank_tile_tokens():
+    vit = tiny_vit()
+    x = torch.randn(1, 6, 64, 64)
+    keep = torch.ones(1, 16, dtype=torch.bool)
+    keep[0, [3, 7]] = False
+    with torch.no_grad():
+        out = sparse_features(vit, x, keep, fill="blank")
+        blank = vit.forward_features(torch.zeros_like(x))
+    for o, b in zip(out, blank):
+        torch.testing.assert_close(o[0, 1 + 3], b[0, 1 + 3])
+        torch.testing.assert_close(o[0, 1 + 7], b[0, 1 + 7])

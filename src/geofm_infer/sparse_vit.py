@@ -27,7 +27,8 @@ def sparse_features(vit, x, keep, fill="mean"):
     keep: (b, n) bool. returns a list with one (b, 1 + n, d) tensor per block,
     the same layout forward_features gives. fill is "mean" (mean of the kept
     tokens of that tile and layer), "zero", or "nearest" (copy of the closest
-    kept patch).
+    kept patch) or "blank" (what the encoder gives for an all zero tile at
+    that place and layer).
     """
     tok, cls_pos = embed(vit, x)
     b, n, d = tok.shape
@@ -42,6 +43,7 @@ def sparse_features(vit, x, keep, fill="mean"):
     if bool(valid.all()):
         attn = None  # no padding, so the fast attention path can be used
     near = nearest_kept(keep, grid_shape(vit, x)) if fill == "nearest" else None
+    blank = blank_features(vit, x) if fill == "blank" else None
 
     cls = (vit.cls_token + cls_pos).expand(b, -1, -1)
     h = torch.cat([cls, h], 1)
@@ -51,7 +53,8 @@ def sparse_features(vit, x, keep, fill="mean"):
         h = blk(h, attn_mask=attn)
         if i == len(vit.blocks) - 1:
             h = vit.norm(h)
-        outs.append(scatter_back(h, take, valid, n, fill, near))
+        base = blank[i] if blank is not None else None
+        outs.append(scatter_back(h, take, valid, n, fill, near, base))
     return outs
 
 
@@ -72,11 +75,34 @@ def nearest_kept(keep, grid):
     return dist.argmin(-1)
 
 
-def scatter_back(h, take, valid, n, fill, near=None):
+_blank_cache = {}
+
+
+@torch.no_grad()
+def blank_features(vit, x):
+    """per layer tokens of the dense encoder on an all zero tile (the band mean
+    after normalizing). computed once per model, tile size and dtype.
+
+    used as the fill: the decoder then sees roughly what it sees when cloudy
+    pixels are blanked and the whole tile is run."""
+    key = (id(vit), tuple(x.shape[1:]), x.dtype, str(x.device))
+    if key not in _blank_cache:
+        feats = vit.forward_features(torch.zeros_like(x[:1]))
+        _blank_cache[key] = [f[:, 1:] for f in feats]
+    return _blank_cache[key]
+
+
+def scatter_back(h, take, valid, n, fill, near=None, blank=None):
     """put packed tokens back on the full grid of n patches."""
     b, _, d = h.shape
     cls, tok = h[:, :1], h[:, 1:]
     vmask = valid[..., None].to(tok.dtype)
+    if fill == "blank":
+        full = blank.expand(b, -1, -1).clone()
+        src = torch.gather(full, 1, take[..., None].expand(-1, -1, d))
+        src = tok * vmask + src * (1 - vmask)
+        full.scatter_(1, take[..., None].expand(-1, -1, d), src)
+        return torch.cat([cls, full], 1)
     if fill == "nearest":
         full = scatter_back(h, take, valid, n, "zero")[:, 1:]
         full = torch.gather(full, 1, near[..., None].expand(-1, -1, d))
