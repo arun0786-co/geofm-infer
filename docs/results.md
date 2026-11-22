@@ -136,3 +136,39 @@ section 2. results: `results/scene_T43PFL_2080ti_fp32.json`, `..._fp16.json`.
   which eats most of the saving. better packing (no padding) is the obvious next thing.
 - the water share and agreement numbers are the same as on the mac to 3 or 4 digits, so the
   mps and cuda runs compute the same thing.
+
+## 4. drop aware decoder fine tune, rtx 2080 ti, 2026-11-21
+
+`sbatch jobs/train_drop.sh` (seed 0). encoder frozen; neck, decoder and head (15.1 M
+parameters) trained 10 epochs on the 252 sen1floods11 training chips, lr 1e-5, batch 4,
+batch norm statistics frozen. each chip gets a random hidden area of 0 to 80% (0% for one
+chip in five), hidden pixels blanked, patches more than half hidden dropped with the mean
+fill. 34 s per epoch. then the section 1 eval on the 90 test chips, for the original and
+the tuned model (`results/eval_test_2080ti_orig.json`, `..._tuned_s0.json`).
+
+the original model gives the same numbers on cuda as on mps (section 1) to 4 digits.
+
+| hidden | mode | original | tuned |
+|---|---|---|---|
+| 0% | clean | 0.8168 | 0.8190 |
+| 25% | zero_fill | 0.8233 | 0.8152 |
+| | drop_mean | 0.8074 | 0.8026 |
+| 50% | zero_fill | 0.8232 | 0.8156 |
+| | drop_mean | 0.7949 | 0.7949 |
+| 75% | zero_fill | 0.8093 | 0.7907 |
+| | drop_mean | 0.7755 | 0.7844 |
+| real clouds | zero_fill | 0.8503 | 0.8512 |
+| | drop_mean | 0.8485 | **0.8526** |
+
+(water iou on the scored pixels. ms per chip on the 2080 ti, batch 1: 92 dense, 78 / 59 /
+37 for drop at 25 / 50 / 75%.)
+
+what this says:
+
+- the tuned decoder does not hurt the normal dense use (0.8168 to 0.8190).
+- with real clouds, drop_mean with the tuned decoder (0.8526) is now the best of all runs,
+  slightly above the original model's zero_fill (0.8503), while running 13% fewer ms.
+- with big synthetic holes it helps only at 75% (+0.9 points) and not at 25 or 50%. the
+  original model's zero_fill is still better there.
+- this is **one seed**. differences under about 0.5 points may be noise. more seeds next.
+- the tuned model got worse at zero_fill, which makes sense: it was never trained that way.
