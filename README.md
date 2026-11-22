@@ -24,6 +24,9 @@ Prithvi-EO-2.0-300M flood model (m4 pro):
   water iou.
 - **the loss is mostly in the decoder**, not in the encoder missing context. a check that
   gives the encoder full context and only fills the decoder input loses about as much.
+- **a short fine tune of the decoder with random drops closes the gap for real clouds**
+  (3 seeds): dropping cloudy patches then scores 0.8522 water iou, the same as running the
+  whole tuned model (0.8524) and above the original model's usual run (0.8503).
 - two ideas that did not help: copying the nearest kept patch (same as the mean), and using
   the encoder's tokens for a blank tile as the fill (clearly worse).
 
